@@ -58,16 +58,39 @@ async function list(
   maxPageSize = product.defaultListPageSize
 ) {
   const pgsql = pgsqlFactory.create()
+  const { listFilter, listFilterValues } = listFilters(filter, filterValues, 4)
 
   pageSize = parseInt(pageSize)
   pageSize = pageSize > maxPageSize ? maxPageSize : pageSize
 
-  return await pgsql.list(product.tableName, pageNumber, pageSize, filter, filterValues, queryFields())
+  return await pgsql.list(
+    product.tableName,
+    pageNumber,
+    pageSize,
+    listFilter,
+    listFilterValues,
+    queryFields()
+  )
 }
 
 async function listSize(filter = '', filterValues = []) {
   const pgsql = pgsqlFactory.create(product.idField)
-  return await pgsql.listSize(product.tableName, filter, filterValues)
+  const { listFilter, listFilterValues } = listFilters(filter, filterValues)
+
+  return await pgsql.listSize(product.tableName, listFilter, listFilterValues)
+}
+
+function listFilters(listFilter = '', listFilterValues = [], placeholderOffset = 1) {
+  const placeholderNumber = placeholderOffset + listFilterValues.length
+  const statusFilter = 'status = $' + placeholderNumber
+
+  listFilter = listFilter !== ''
+    ? '(' + listFilter + ') and ' + statusFilter
+    : statusFilter
+
+  listFilterValues.push('enabled')
+
+  return { listFilter, listFilterValues }
 }
 
 function validateType(type) {
